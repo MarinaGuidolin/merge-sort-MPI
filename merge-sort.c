@@ -79,7 +79,7 @@ void mergeEmArraysDiferentes(int* numbersA, int beginA, int middleA, int endA, i
 	}
 }
 
-void merge(int* numbersA, int beginA, int middleA, int endA, int * sorted, int* numbersB , int beginB, int middleB, int endB) {
+void merge(int* numbersA, int beginA, int middleA, int endA, int* numbersB , int beginB, int middleB, int endB, int * sorted) {
 	int i, j, iA, iB, iS; // iA, iB e iS são as posições atuais dos arrays A, B e Sorted
 	i = beginA; j = (beginA + endB)/2; /*i é o inicio do array A (primeira posição do array sorted)
 	 e j é o meio do array sorted (meio entre o inicio de a e o fim de b)*/
@@ -120,14 +120,21 @@ void merge(int* numbersA, int beginA, int middleA, int endA, int * sorted, int* 
 void recursive_merge_sort(int* tmp, int begin, int end, int* numbers) {
 	// dividir o temp em duas partes (o temp recebido é o numbers original)
 	// number é iniciado como um array vazio
+	int beginA, middleA, endA, beginB, middleB, endB;
+	int middle = (begin + end)/2;
+	beginA = begin;
+	endA = middle;
+	middleA = (beginA + endA)/2;
+	beginB = ((begin + end)/2) +1;
+	endB = end;
+	middleB = (beginB + endB)/2;
 
 	if (end - begin < 2)
 		return;
 	else {
-		int middle = (begin + end)/2;
-		recursive_merge_sort(numbers, begin, middle, tmp);
-		recursive_merge_sort(numbers, middle, end, tmp);
-		merge(tmp, begin, middle, end, numbers);
+		recursive_merge_sort(numbers, begin, middle, tmp); // chama para a primeira metade
+		recursive_merge_sort(numbers, middle, end, tmp); // chama para a segunda metade
+		merge(tmp,beginA, middleA, endA, tmp, beginB, middleB, endB, numbers); // dá um merge usando dois arrays, um para a primeira metade e outro para a segunda
 	}
 }
 
@@ -163,11 +170,8 @@ int main (int argc, char ** argv) {
 		a[0] = 1; a[1] = 3; a[2] = 4; a[3] = 7;
 		a[4] = 0; a[5] = 2; a[6] = 5; a[7] = 6;
 
-		int * b = (int*)malloc(8*sizeof(int));
-		b[0] = 1; b[1] = 3; b[2] = 4; b[3] = 7;
-		b[4] = 0; b[5] = 2; b[6] = 5; b[7] = 6;
 		int * values = (int*)malloc(8*sizeof(int));
-		merge(a, 0, 4, 8, values); // mudar para 2 arrays
+		merge(a, 0, 4, 8, values);
 		free (a);
 		print_array(values, 8);
 		free(values);
@@ -182,7 +186,7 @@ int main (int argc, char ** argv) {
 		a[4] = 3; a[5] = 2; a[6] = 1; a[7] = 0;
 
 		b = memcpy(b, a, 8*sizeof(int));
-		merge_sort(a, 8, b); // mudar para 2 arrays
+		merge_sort(a, 8, b); 
 		print_array(b, 8);
 		
 		free(a);
@@ -197,7 +201,7 @@ int main (int argc, char ** argv) {
 		b = memcpy(b, a, 9*sizeof(int));
 		print_array(b, 9);
 
-		merge_sort(a, 9, b); // mudar para 2 arrays
+		merge_sort(a, 9, b); 
 		print_array(b, 9);
 
 		free(a);
