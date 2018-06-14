@@ -86,14 +86,28 @@ void recursive_merge_sort(int* tmp, int begin, int end, int* numbers) {
 	// dividir o temp em duas partes (o temp recebido é o numbers original)
 	// number é iniciado como um array vazio
 	int beginA, middleA, endA, beginB, middleB, endB;
-	int middle = (begin + end)/2;
-	beginA = begin;
-	endA = middle;
-	middleA = (beginA + endA)/2;
-	beginB = ((begin + end)/2) +1;
-	endB = end;
-	middleB = (beginB + endB)/2;
+	int middle;// = (begin + end)/2;
+	if(tmp % 2 == 0){
+		middle = (begin + end)/2;
+		beginA = begin;
+		endA = middle -1;
+		middleA = (beginA + endA)/2;
+		beginB = ((begin + end)/2);
+		endB = end;
+		middleB = (beginB + endB)/2;
+    }
+    else {
+    	middle = (begin + end)/2;
+    	beginA = begin;
+    	middleA = middle/2;
+    	endA = middle;
+    	beginB = middle +1;
+    	middleB = (beginB + end)/2;
+    	endB = end;
 
+
+    }
+    	
 	if (end - begin < 2)
 		return;
 	else {
@@ -136,12 +150,13 @@ int main (int argc, char ** argv) {
 		a[4] = 0; a[5] = 2; a[6] = 5; a[7] = 6;
 
 		int * values = (int*)malloc(8*sizeof(int));
-		merge(a, 0, 4, 8, values);
+		merge(a, 0, 2, 3, a, 4, 6, 8 values);
 		free (a);
 		print_array(values, 8);
 		free(values);
         return 2;
 	}
+	 (a, 0, 2, 4, a)
 
 	// Basic MERGE-SORT unit test
 	if (DEBUG > 0) {
