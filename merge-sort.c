@@ -4,7 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include <stdarg.h>
+#include <omp.h>
+#include <mpi.h>
 
 /*** 
  * Todas as Macros pré-definidas devem ser recebidas como parâmetros de
@@ -43,11 +44,64 @@ void debug(const char* msg, ...) {
 // int middle é a metade do array
 // int end é o final do array
 // values é o array que é usado
-void merge(int* numbers, int begin, int middle, int end, int * sorted) {
-	int i, j;
-	i = begin; j = middle;
-	debug("Merging. Begin: %d, Middle: %d, End: %d\n", begin, middle, end);
-	for (int k = begin; k < end; ++k) {
+void mergeEmArraysDiferentes(int* numbersA, int beginA, int middleA, int endA, int * sortedA, int* numbersB, int beginB, int middleB, int endB, int* sortedB) {
+	int i, j, r, s;
+	i = beginA; j = middleA;
+	r = beginB; s = middleB;
+
+	sortedA = (int*)malloc(endA*sizeof(int));
+	sortedB = (int*)malloc(endB*sizeof(int));
+
+	//* implementação para resultados em array separados
+	#pragma omp parallel for
+	debug("Merging array A  Begin: %d, Middle: %d, End: %d\n", beginA, middleA, endA);
+	for (int k = beginA; k < endA; ++k) {
+		debug("LHS[%d]: %d, RHS[%d]: %d\n", i, numbers[i], j, numbers[j]);
+		if (i < middle && (j >= end || numbers[i] < numbers[j])) {
+			sortedA[k] = numbers[i];
+			i++;
+		} else {
+			sortedA[k] = numbers[j];
+			j++;
+		}
+	}
+	#pragma omp parallel for
+	debug("Merging array B  Begin: %d, Middle: %d, End: %d\n", beginB, middleB, endB);
+	for (int l = beginB; l < endB; ++l) {
+		debug("LHS[%d]: %d, RHS[%d]: %d\n", r, numbers[r], j, numbers[s]);
+		if (r < middle && (s >= end || numbers[r] < numbers[s])) {
+			sortedB[l] = numbers[r];
+			r++;
+		} else {
+			sortedB[l] = numbers[s];
+			s++;
+		}
+	}
+}
+
+void merge(int* numbersA, int beginA, int middleA, int endA, int * sorted, int* numbersB , int beginB, int middleB, int endB) {
+	int i, j, iA, iB, iS; // iA, iB e iS são as posições atuais dos arrays A, B e Sorted
+	i = beginA; j = (beginA + endB)/2; /*i é o inicio do array A (primeira posição do array sorted)
+	 e j é o meio do array sorted (meio entre o inicio de a e o fim de b)*/
+	middleS = (beginA + endB)/2;
+	iA = iB = iS = 0;
+	endS = endB + endA; // tamanho total do array de 
+	sorted = (int*)malloc(endS*sizeof(int)); // aloca o array sorted na memoria
+
+
+	while ((iA < endA) && (iB < endB)) {
+		if (First[iA] <= Second[iB]) {
+			sortedd[iS] = First[iA];
+			iS++; iA++;
+		} 
+		else {
+			sorted[iS] = Second[iB];
+			iS++; iB++;
+		}
+	} // array sorted com todos os elementos de A e B
+
+	debug("Merging. Begin: %d, Middle: %d, End: %d\n", beginA, j, endB);
+	for (int k = beginA; k < endB; ++k) { // ordena todos os elementos do sorted
 		debug("LHS[%d]: %d, RHS[%d]: %d\n", i, numbers[i], j, numbers[j]);
 		if (i < middle && (j >= end || numbers[i] < numbers[j])) {
 			sorted[k] = numbers[i];
