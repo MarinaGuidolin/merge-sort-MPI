@@ -44,41 +44,6 @@ void debug(const char* msg, ...) { // ?? o que faz, o que precisa depois dos ...
 // int middle é a metade do array
 // int end é o final do array
 // values é o array que é usado
-void mergeEmArraysDiferentes(int* numbersA, int beginA, int middleA, int endA, int * sortedA, int* numbersB, int beginB, int middleB, int endB, int* sortedB) {
-	int i, j, r, s;
-	i = beginA; j = middleA;
-	r = beginB; s = middleB;
-
-	sortedA = (int*)malloc(endA*sizeof(int));
-	sortedB = (int*)malloc(endB*sizeof(int));
-
-	//* implementação para resultados em array separados
-	#pragma omp parallel for
-	debug("Merging array A  Begin: %d, Middle: %d, End: %d\n", beginA, middleA, endA);
-	for (int k = beginA; k < endA; ++k) {
-		debug("LHS[%d]: %d, RHS[%d]: %d\n", i, numbers[i], j, numbers[j]);
-		if (i < middle && (j >= end || numbers[i] < numbers[j])) {
-			sortedA[k] = numbers[i];
-			i++;
-		} else {
-			sortedA[k] = numbers[j];
-			j++;
-		}
-	}
-	#pragma omp parallel for
-	debug("Merging array B  Begin: %d, Middle: %d, End: %d\n", beginB, middleB, endB);
-	for (int l = beginB; l < endB; ++l) {
-		debug("LHS[%d]: %d, RHS[%d]: %d\n", r, numbers[r], j, numbers[s]);
-		if (r < middle && (s >= end || numbers[r] < numbers[s])) {
-			sortedB[l] = numbers[r];
-			r++;
-		} else {
-			sortedB[l] = numbers[s];
-			s++;
-		}
-	}
-}
-
 void merge(int* numbersA, int beginA, int middleA, int endA, int* numbersB , int beginB, int middleB, int endB, int * sorted) {
 	int i, j, iA, iB, iS; // iA, iB e iS são as posições atuais dos arrays A, B e Sorted
 	i = beginA; j = (beginA + endB)/2; /*i é o inicio do array A (primeira posição do array sorted)
