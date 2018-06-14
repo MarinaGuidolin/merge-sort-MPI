@@ -5,7 +5,7 @@
 #include <string.h>
 #include <math.h>
 #include <omp.h>
-#include <mpi.h>
+//#include <mpi.h>
 
 /*** 
  * Todas as Macros pré-definidas devem ser recebidas como parâmetros de
@@ -26,7 +26,7 @@
 /*
  * More info on: http://en.cppreference.com/w/c/language/variadic
  */
-void debug(const char* msg, ...) {
+void debug(const char* msg, ...) { // ?? o que faz, o que precisa depois dos ...
 	if (DEBUG > 2) {
 		va_list args;
 		va_start(args, msg); 
@@ -118,6 +118,9 @@ void merge(int* numbersA, int beginA, int middleA, int endA, int * sorted, int* 
  * Merge sort recursive step
  */
 void recursive_merge_sort(int* tmp, int begin, int end, int* numbers) {
+	// dividir o temp em duas partes (o temp recebido é o numbers original)
+	// number é iniciado como um array vazio
+
 	if (end - begin < 2)
 		return;
 	else {
@@ -129,8 +132,8 @@ void recursive_merge_sort(int* tmp, int begin, int end, int* numbers) {
 }
 
 // First Merge Sort call
-void merge_sort(int * numbers, int size, int * tmp) {
-	recursive_merge_sort(numbers, 0, size, tmp);
+void merge_sort(int * numbersA, int sizeA, int * numbersB, int sizeB, int * tmp) {
+	recursive_merge_sort(numbers, 0, size, tmp); // chama a função recusva passando o numbers como um array vazio e o temp como o numbers
 }
 
 void print_array(int* array, int size) {
@@ -159,8 +162,12 @@ int main (int argc, char ** argv) {
 		int * a = (int*)malloc(8*sizeof(int));
 		a[0] = 1; a[1] = 3; a[2] = 4; a[3] = 7;
 		a[4] = 0; a[5] = 2; a[6] = 5; a[7] = 6;
+
+		int * b = (int*)malloc(8*sizeof(int));
+		b[0] = 1; b[1] = 3; b[2] = 4; b[3] = 7;
+		b[4] = 0; b[5] = 2; b[6] = 5; b[7] = 6;
 		int * values = (int*)malloc(8*sizeof(int));
-		merge(a, 0, 4, 8, values);
+		merge(a, 0, 4, 8, values); // mudar para 2 arrays
 		free (a);
 		print_array(values, 8);
 		free(values);
@@ -169,13 +176,13 @@ int main (int argc, char ** argv) {
 
 	// Basic MERGE-SORT unit test
 	if (DEBUG > 0) {
-		int * a = (int*)malloc(8*sizeof(int));
+		int * a = (int*)malloc(8*sizeof(int)); 
 		int * b = (int*)malloc(8*sizeof(int));
 		a[0] = 7; a[1] = 6; a[2] = 5; a[3] = 4;
 		a[4] = 3; a[5] = 2; a[6] = 1; a[7] = 0;
 
 		b = memcpy(b, a, 8*sizeof(int));
-		merge_sort(a, 8, b);
+		merge_sort(a, 8, b); // mudar para 2 arrays
 		print_array(b, 8);
 		
 		free(a);
@@ -190,7 +197,7 @@ int main (int argc, char ** argv) {
 		b = memcpy(b, a, 9*sizeof(int));
 		print_array(b, 9);
 
-		merge_sort(a, 9, b);
+		merge_sort(a, 9, b); // mudar para 2 arrays
 		print_array(b, 9);
 
 		free(a);
@@ -235,6 +242,7 @@ int main (int argc, char ** argv) {
 	print_array(sortable, arr_size);
 	merge_sort(sortable, arr_size, tmp);
 	print_array(sortable, arr_size);
+
 	
 	free(sortable);
 	free(tmp);
