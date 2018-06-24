@@ -1,4 +1,4 @@
-// V. Freitas [2018] @ ECL-UFSC
+// O COPYRIGHT DO VINICIUS FREITAS
 #include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
@@ -89,16 +89,18 @@ void recursive_merge_sort_parallel(int *tmp, int begin, int end, int * sorted, i
 
 	if (tagrecebido == 0){
 		int* recebido;
+		MPI_Recv(&beginRecebido, 1, MPI_INT, rankAnterior, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		MPI_Recv(&sizeRecebido, 1, MPI_INT, rankAnterior, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		recebido = (int*)malloc(sizeRecebido*sizeof(int));
 		MPI_Recv(&recebido, sizeRecebido, MPI_INT, rankAnterior, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		print_array(recebido, sizeRecebido);
 		tagrecebido = 1;
 		tmp = recebido;
+		end = (int*)sizeRecebido - 1;
+		begin = (int*)beginRecebido;
 		free(recebido);
 	}
 
-	
 	if (proxProcesso > maxRank) {
 		recursive_merge_sort_seq(tmp, begin, end, sorted);
 	}
@@ -113,6 +115,8 @@ void recursive_merge_sort_parallel(int *tmp, int begin, int end, int * sorted, i
 		enviado = (int*)malloc(mid*sizeof(int));
 		enviado = tmp + mid + 1;
 		int tagenviado = 0;
+		int midEnvia = mid + 1;
+		MPI_Send(&midEnvia, 1, MPI_INT, proxProcesso, MPI_ANY_TAG, MPI_COMM_WORLD);
 		MPI_Send(&sizeB, 1, MPI_INT, proxProcesso, MPI_ANY_TAG, MPI_COMM_WORLD);
 		MPI_Send(&tagenviado, 1, MPI_INT, proxProcesso, MPI_ANY_TAG, MPI_COMM_WORLD);
 		MPI_Send(&enviado, sizeB, MPI_INT, proxProcesso, MPI_ANY_TAG, MPI_COMM_WORLD);
@@ -149,7 +153,7 @@ int main (int argc, char ** argv) {
 	int seed, max_val;
 	int * sortable;
 	int * tmp;
-	size_t arr_size;
+	int arr_size;
 
 	switch (argc) {
 		case 1:
