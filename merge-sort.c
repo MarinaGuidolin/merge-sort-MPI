@@ -22,7 +22,7 @@
 #ifndef MAXVAL
 #define MAXVAL 255
 #endif // MAX_VAL
-
+int *ordenado;
 /*
  * More info on: http://en.cppreference.com/w/c/language/variadic
  */
@@ -35,91 +35,66 @@ void debug(const char* msg, ...) { // ?? o que faz, o que precisa depois dos ...
 	}
 }
 
-/*
- * Orderly merges two int arrays (numbers[begin..middle] and numbers[middle..end]) into one (sorted).
- * \retval: merged array -> sorted
- */
-// int* numbers é um ponteiro que aponta para numeros de um array
-// int begin é onde começa o array
-// int middle é a metade do array
-// int end é o final do array
-// values é o array que é usado
-void merge(int* numbersA, int beginA, int middleA, int endA, int* numbersB , int beginB, int middleB, int endB, int * sorted) {
-	int i, j, iA, iB, iS; // iA, iB e iS são as posições atuais dos arrays A, B e Sorted
-	i = beginA; j = (beginA + endB)/2; /*i é o inicio do array A (primeira posição do array sorted)
-	 e j é o meio do array sorted (meio entre o inicio de a e o fim de b)*/
-	middleS = (beginA + endB)/2;
-	iA = iB = iS = 0;
-	endS = endB + endA; // tamanho total do array de 
-	sorted = (int*)malloc(endS*sizeof(int)); // aloca o array sorted na memoria
+int * merge(int *numbersA, int sizeA, int *numbersB, int sizeB, int *sorted) {
+	int posicaoA = 0, posicaoB = 0, posicaoSorted = 0, i; //posicao
+	
+	int sizeSorted = sizeA+sizeB;
+	print_array(numbersA, sizeA);
+	print_array(numbersB,sizeB);
 
-
-	while ((iA < endA) && (iB < endB)) {
-		if (First[iA] <= Second[iB]) {
-			sortedd[iS] = First[iA];
-			iS++; iA++;
+	sorted = (int *)malloc(sizeSorted*sizeof(int));
+	while ((posicaoA < sizeA) && (posicaoB < sizeB)) {
+		if (numbersA[posicaoA] <= numbersB[posicaoB]) {
+			sorted[posicaoSorted] = numbersA[posicaoA];
+			posicaoSorted++; posicaoA++;
 		} 
 		else {
-			sorted[iS] = Second[iB];
-			iS++; iB++;
-		}
-	} // array sorted com todos os elementos de A e B
-
-	debug("Merging. Begin: %d, Middle: %d, End: %d\n", beginA, j, endB);
-	for (int k = beginA; k < endB; ++k) { // ordena todos os elementos do sorted
-		debug("LHS[%d]: %d, RHS[%d]: %d\n", i, numbers[i], j, numbers[j]);
-		if (i < middle && (j >= end || numbers[i] < numbers[j])) {
-			sorted[k] = numbers[i];
-			i++;
-		} else {
-			sorted[k] = numbers[j];
-			j++;
+			sorted[posicaoSorted] = numbersB[posicaoB];
+			posicaoSorted++; posicaoB++;
 		}
 	}
+
+	if (posicaoA >= sizeA){
+		for (i = posicaoSorted; i < sizeSorted; i++, posicaoB++){
+			sorted[i] = numbersB[posicaoB];
+		}
+	}
+	else if (posicaoB >= sizeB){
+		for (i = posicaoSorted; i < sizeSorted; i++, posicaoA++){
+			sorted[i] = numbersA[posicaoA];
+		}
+	}
+
+	for (i = 0; i < sizeA; i++){
+		numbersA[i] = sorted[i];
+	}
+	for (i = 0; i < sizeB; i++){
+		numbersB[i] = sorted[sizeA+i];
+	}
+	ordenado = sorted;
+	return sorted;
 }
 
 
-/*
- * Merge sort recursive step
- */
-void recursive_merge_sort(int* tmp, int begin, int end, int* numbers) {
-	// dividir o temp em duas partes (o temp recebido é o numbers original)
-	// number é iniciado como um array vazio
-	int beginA, middleA, endA, beginB, middleB, endB;
-	int middle;// = (begin + end)/2;
-	if(tmp % 2 == 0){
-		middle = (begin + end)/2;
-		beginA = begin;
-		endA = middle -1;
-		middleA = (beginA + endA)/2;
-		beginB = ((begin + end)/2);
-		endB = end;
-		middleB = (beginB + endB)/2;
-    }
-    else {
-    	middle = (begin + end)/2;
-    	beginA = begin;
-    	middleA = middle/2;
-    	endA = middle;
-    	beginB = middle +1;
-    	middleB = (beginB + end)/2;
-    	endB = end;
+void recursive_merge_sort(int *tmp, int begin, int end, int * sorted)
+{
+	int mid = (begin+end)/2;
+	int sizeA = mid - begin + 1;
+	int sizeB = end - mid;
 
-
-    }
-    	
-	if (end - begin < 2)
+	if (end == begin) {
 		return;
-	else {
-		recursive_merge_sort(numbers, begin, middle, tmp); // chama para a primeira metade
-		recursive_merge_sort(numbers, middle, end, tmp); // chama para a segunda metade
-		merge(tmp,beginA, middleA, endA, tmp, beginB, middleB, endB, numbers); // dá um merge usando dois arrays, um para a primeira metade e outro para a segunda
+	} else {
+		recursive_merge_sort(tmp, begin, mid, sorted); // primeira metade (maior se for impar)
+		recursive_merge_sort(tmp, mid+1, end, sorted); // segunda metade 
+		merge(tmp + begin, sizeA, tmp + mid + 1, sizeB, sorted);
+	
 	}
 }
 
 // First Merge Sort call
-void merge_sort(int * numbersA, int sizeA, int * numbersB, int sizeB, int * tmp) {
-	recursive_merge_sort(numbers, 0, size, tmp); // chama a função recusva passando o numbers como um array vazio e o temp como o numbers
+void merge_sort(int * numbers, int size, int * tmp) {
+	recursive_merge_sort(numbers, 0, size-1, tmp); // chama a função recusva passando o numbers como um array vazio e o temp como o numbers
 }
 
 void print_array(int* array, int size) {
@@ -144,20 +119,23 @@ int main (int argc, char ** argv) {
 	size_t arr_size;
 
 	// Basic MERGE unit test
-	if (DEBUG > 1) { // debug ???
+	if (DEBUG > 1) {
 		int * a = (int*)malloc(8*sizeof(int));
 		a[0] = 1; a[1] = 3; a[2] = 4; a[3] = 7;
 		a[4] = 0; a[5] = 2; a[6] = 5; a[7] = 6;
+		int * b = (int*)malloc(8*sizeof(int));
+		b[0] =20 ; b[1] = 11; b[2] = 12; b[3] = 10;
+		b[4] = 9 ; b[5] = 8; b[6] = 6; b[7] = 7;
+
 
 		int * values = (int*)malloc(8*sizeof(int));
-		merge(a, 0, 2, 3, a, 4, 6, 8 values);
+		merge(a, 8, b, 8, values);
 		free (a);
 		print_array(values, 8);
 		free(values);
         return 2;
 	}
-	 (a, 0, 2, 4, a)
-
+	 
 	// Basic MERGE-SORT unit test
 	if (DEBUG > 0) {
 		int * a = (int*)malloc(8*sizeof(int)); 
@@ -222,10 +200,12 @@ int main (int argc, char ** argv) {
 	
 	populate_array(sortable, arr_size, max_val);
 	tmp = memcpy(tmp, sortable, arr_size*sizeof(int));
-
-	print_array(sortable, arr_size);
+	printf("array original\n");
+	print_array(tmp, arr_size);
+	ordenado = malloc(arr_size*sizeof(int));
 	merge_sort(sortable, arr_size, tmp);
-	print_array(sortable, arr_size);
+	printf("FINAL sort\n");
+	print_array(ordenado, arr_size);
 
 	
 	free(sortable);
