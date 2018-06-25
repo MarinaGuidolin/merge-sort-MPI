@@ -220,7 +220,7 @@ int main (int argc, char ** argv) {
 			
 			int *sorted = malloc(sizeB*sizeof(int)); 
 			recursive_merge_sort_p(recebido2, 0, sizeB, sorted); // executa o merge paralelo com uma segunda metade recebida
-			MPI_Send(recebido2, sizeB, MPI_INT, proxProcesso, 0, MPI_COMM_WORLD);  // talvz mudar para o processo anterior
+			MPI_Send(recebido2, sizeB, MPI_INT, proxProcesso, MPI_METADE, MPI_COMM_WORLD);  // talvz mudar para o processo anterior
 			free(recebido2);
 			free(sorted);
 		}
