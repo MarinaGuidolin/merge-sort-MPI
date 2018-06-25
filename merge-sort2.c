@@ -168,51 +168,48 @@ int main (int argc, char ** argv) {
 	int * tmp;
 	size_t arr_size;
 	
+	switch (argc) {
+		case 1:
+			seed = time(NULL);
+			arr_size = NELEMENTS;
+			max_val = MAXVAL;
+			break;
+		case 2:
+			seed = atoi(argv[1]);
+			arr_size = NELEMENTS;
+			max_val = MAXVAL;
+			break;
+		case 3:
+			seed = atoi(argv[1]);
+			arr_size = atoi(argv[2]);
+			max_val = MAXVAL;
+			break;
+		case 4:
+			seed = atoi(argv[1]);
+			arr_size = atoi(argv[2]);
+			max_val = atoi(argv[3]);
+			break;
+		default:
+			printf("Too many arguments\n");
+			break;	
+	}
+
+	int proxProcesso = rank + pow(2, nivel); // definido o processo ápós o zero = 1
+	srand(seed);
+	sortable = malloc(arr_size*sizeof(int));
+	tmp 	 = malloc(arr_size*sizeof(int));
+	populate_array(sortable, arr_size, max_val);
+	tmp = memcpy(tmp, sortable, arr_size*sizeof(int));
+	ordenado = malloc(arr_size*sizeof(int));
+	print_array(tmp, arr_size);
+	
 	if (rank == 0){
-		switch (argc) {
-			case 1:
-				seed = time(NULL);
-				arr_size = NELEMENTS;
-				max_val = MAXVAL;
-				break;
-			case 2:
-				seed = atoi(argv[1]);
-				arr_size = NELEMENTS;
-				max_val = MAXVAL;
-				break;
-			case 3:
-				seed = atoi(argv[1]);
-				arr_size = atoi(argv[2]);
-				max_val = MAXVAL;
-				break;
-			case 4:
-				seed = atoi(argv[1]);
-				arr_size = atoi(argv[2]);
-				max_val = atoi(argv[3]);
-				break;
-			default:
-				printf("Too many arguments\n");
-				break;	
-		}
-
-		int proxProcesso = rank + pow(2, nivel); // definido o processo ápós o zero = 1
-		srand(seed);
-		sortable = malloc(arr_size*sizeof(int));
-		tmp 	 = malloc(arr_size*sizeof(int));
-
-		populate_array(sortable, arr_size, max_val);
-		tmp = memcpy(tmp, sortable, arr_size*sizeof(int));
-		printf("array original\n");
-		print_array(tmp, arr_size);
-		ordenado = malloc(arr_size*sizeof(int));
 		merge_sort(sortable, arr_size, tmp);
-		printf("FINAL sort\n");
-		print_array(ordenado, arr_size);
 	} else {
-		int processoAnterior = rank -1; // esperando do processo anterior
-		int sizeB; // tamanho da segunda metade recebida
+		int sizeB, nivel; // tamanho da segunda metade recebida
 		MPI_Recv(&sizeB, 1, MPI_INT, processoAnterior, TAG_METADE, MPI_COMM_WORLD, MPI_STATUS_IGNORE);  //recebe do processo anterior
 		MPI_Recv(&nivel, 1 MPI_INT, processoAnterior, TAG_NIVEL, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		int processoAnterior = pow(2, nivel) - rank; // esperando do processo anterior
 		if(processosCriados > maxProcessos){ // nao pode mais criar processos novos, entao ele so recebe e envia o array ja 
 			int proxProcesso = rank + pow(2, nivel);
 			int *recebido2 = malloc(sizeB*sizeof(int));
@@ -225,6 +222,8 @@ int main (int argc, char ** argv) {
 			free(sorted);
 		}
 	}
+		
+	print_array(ordenado, arr_size);
 	free(sortable);
 	free(tmp);
 	return 0;
