@@ -4,8 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include <omp.h>
-//#include <mpi.h>
+#include <mpi.h>
 
 /*** 
  * Todas as Macros pré-definidas devem ser recebidas como parâmetros de
@@ -82,27 +81,29 @@ int * merge(int *numbersA, int sizeA, int *numbersB, int sizeB, int *sorted) {
 
 void recursive_merge_sort_p(int *tmp, int begin, int end, int * sorted){
 	int proxProcesso = rank + pow(2, nivel); // se ele nao recebeu nada, usa o nivel e o rank atual
-	int tag = 0;
 	if(proxProcesso > maxProcessos){
 		return;
 	}//ou recursive_merge_sort(tmp, begin, end, sorted);
 	if (end == begin) {
 		return;
 	} else {
+			int tag = 0;
 			int mid = (begin+end)/2; // ultimo indice da primeira metade
 			int sizeA = mid - begin + 1; // tamanho da primeira metade
 			int sizeB = end - mid; // tamanho da segunda metade
-			int * enviado = malloc(sizeB*sizeof(int));
-			enviado = tmp + mid + 1; // segunda metade a ser enviada
+			//int * enviado = malloc(sizeB*sizeof(int));
+			int *enviado = tmp + mid + 1; // segunda metade a ser enviada
 
 			int proximoNivel = nivel + 1;
 			int proxProcesso = rank + pow(2, nivel);
+			printf("array enviado\n");
+			print_array(enviado, sizeB);
 			MPI_Send(enviado, sizeB, MPI_INT, proxProcesso, 0, MPI_COMM_WORLD); // envia a segunda metade do array principal
 			nivel++;
 			MPI_Send(&proximoNivel, 1, MPI_INT, proxProcesso, 0, MPI_COMM_WORLD); // envia o nivel
 			tag = 1; // tag do processo que enviou será 1
 			//recursive_merge_sort_p(tmp, begin, mid, sorted); // primeira metade (maior se for impar)
-			free(enviado);
+			//free(enviado);
 
 			recursive_merge_sort_p(tmp, mid+1, end, sorted); // segunda metade 
 
@@ -112,6 +113,8 @@ void recursive_merge_sort_p(int *tmp, int begin, int end, int * sorted){
 			MPI_Recv(&nivel, 1, MPI_INT, proxProcesso, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE); // Recebe o array ordenado
 			MPI_Recv(recebido, sizeB, MPI_INT, proxProcesso, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE); 
 			processosCriados++;
+			printf("array recebido\n");
+			print_array(recebido, sizeB);
 			tmp = recebido;
 			free(recebido);
 		}
@@ -257,7 +260,7 @@ int main (int argc, char ** argv) {
 		int processoAnterior = rank -1; // esperando do processo anterior
 		int sizeB; // tamanho da segunda metade recebida
 		MPI_Recv(&sizeB, 1, MPI_INT, processoAnterior, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);  //recebe do processo anterior
-		MPI_Recv(&nivel, 1 MPI_INT, processoAnterior, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(&nivel, 1, MPI_INT, processoAnterior, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		if(processosCriados > maxProcessos){ // nao pode mais criar processos novos, entao ele so recebe e envia o array ja 
 			int proxProcesso = rank + pow(2, nivel);
 			int *recebido2 = malloc(sizeB*sizeof(int));
