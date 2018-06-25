@@ -22,52 +22,54 @@
 #define MAXVAL 255
 #endif // MAX_VAL
 
-int* ordenado, enviado;
+int* ordenado;
 int mpiSize, mpiRank;
 
-int * merge(int *numbersA, int sizeA, int *numbersB, int sizeB, int *sorted) {
+int * merge(int *numbersA, int sizeA, int *numbersB, int sizeB) {
 	int posicaoA = 0;
 	int posicaoB = 0;
 	int posicaoSorted = 0;
 	int i; //posicao
 	
 	int sizeSorted = sizeA+sizeB;
+	printf("primeira metade\n");
 	print_array(numbersA, sizeA);
+	printf("segunda metade\n");
 	print_array(numbersB,sizeB);
 
-	sorted = (int *)malloc(sizeSorted*sizeof(int));
+
 	while ((posicaoA < sizeA) && (posicaoB < sizeB)) {
 		if (numbersA[posicaoA] <= numbersB[posicaoB]) {
-			sorted[posicaoSorted] = numbersA[posicaoA];
+			ordenado[posicaoSorted] = numbersA[posicaoA];
 			posicaoSorted++; posicaoA++;
 		} 
 		else {
-			sorted[posicaoSorted] = numbersB[posicaoB];
+			ordenado[posicaoSorted] = numbersB[posicaoB];
 			posicaoSorted++; posicaoB++;
 		}
 	}
 	if (posicaoA >= sizeA){
 		for (i = posicaoSorted; i < sizeSorted; i++, posicaoB++){
-			sorted[i] = numbersB[posicaoB];
+			ordenado[i] = numbersB[posicaoB];
 		}
 	}
 	else if (posicaoB >= sizeB){
 		for (i = posicaoSorted; i < sizeSorted; i++, posicaoA++){
-			sorted[i] = numbersA[posicaoA];
+			ordenado[i] = numbersA[posicaoA];
 		}
 	}
 	for (i = 0; i < sizeA; i++){
-		numbersA[i] = sorted[i];
+		numbersA[i] = ordenado[i];
 	}
 	for (i = 0; i < sizeB; i++){
-		numbersB[i] = sorted[sizeA+i];
+		numbersB[i] = ordenado[sizeA+i];
 	}
-	ordenado = sorted;
-	return sorted;
+	
+	return ordenado;
 }
 
 
-void recursive_merge_sort_seq(int *tmp, int begin, int end, int * sorted) {
+void recursive_merge_sort_seq(int *tmp, int begin, int end) {
 	int mid = (begin+end)/2;
 	int sizeA = mid - begin + 1;
 	int sizeB = end - mid;
@@ -75,34 +77,38 @@ void recursive_merge_sort_seq(int *tmp, int begin, int end, int * sorted) {
 	if (end == begin) {
 		return;
 	} else {
-		recursive_merge_sort_seq(tmp, begin, mid, sorted); // primeira metade (maior se for impar)
-		recursive_merge_sort_seq(tmp, mid+1, end, sorted); // segunda metade 
-		merge(tmp + begin, sizeA, tmp + mid + 1, sizeB, sorted);
+		recursive_merge_sort_seq(tmp, begin, mid); // primeira metade (maior se for impar)
+		recursive_merge_sort_seq(tmp, mid+1, end); // segunda metade 
+		merge(tmp + begin, sizeA, tmp + mid + 1, sizeB);
 	}
 }
-
-void recursive_merge_sort_parallel(int *tmp, int begin, int end, int * sorted, int nivel, int rankAnterior, int maxRank) {
-	MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+int p = 0;
+void recursive_merge_sort_parallel(int *tmp, int begin, int end, int nivel, int rankAnterior, int maxRank) {
 	int proxProcesso = mpiRank + pow(2, nivel);
-	int tagrecebido, sizeRecebido;
-	MPI_Recv(&tagrecebido, 1, MPI_INT, rankAnterior, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-	if (tagrecebido == 0){
-		int* recebido;
+	int tagrecebido, beginRecebido;
+	//MPI_Recv(&p, 1, MPI_INT, rankAnterior, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	printf("p, %d\n", p);
+	p++;
+	MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
+	//MPI_Recv(&tagrecebido, 1, MPI_INT, rankAnterior, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	int sizeRecebido;
+	if (mpiRank != rankAnterior) {
 		MPI_Recv(&beginRecebido, 1, MPI_INT, rankAnterior, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		MPI_Recv(&sizeRecebido, 1, MPI_INT, rankAnterior, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		recebido = (int*)malloc(sizeRecebido*sizeof(int));
-		MPI_Recv(&recebido, sizeRecebido, MPI_INT, rankAnterior, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		print_array(recebido, sizeRecebido);
-		tagrecebido = 1;
-		tmp = recebido;
-		end = (int*)sizeRecebido - 1;
-		begin = (int*)beginRecebido;
-		free(recebido);
+		int* receb = malloc(end*sizeof(int));
+		MPI_Recv(receb, sizeRecebido, MPI_INT, rankAnterior, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		begin = beginRecebido;
+		printf("begin recebido = %d\n", beginRecebido );
+		end = sizeRecebido;
+		printf("end recebido  = %d\n", end);
+		printf("array recebido\n");
+		print_array(receb, sizeRecebido);
+		tmp = receb;
+
 	}
 
 	if (proxProcesso > maxRank) {
-		recursive_merge_sort_seq(tmp, begin, end, sorted);
+		recursive_merge_sort_seq(tmp, begin, end);
 	}
 	
 	int mid = (begin+end)/2;
@@ -112,97 +118,107 @@ void recursive_merge_sort_parallel(int *tmp, int begin, int end, int * sorted, i
 	if (end == begin) {
 		return;
 	} else {
-		enviado = (int*)malloc(mid*sizeof(int));
-		enviado = tmp + mid + 1;
+		int *enviado = malloc(sizeB*sizeof(int));
+
+		enviado = (tmp + mid + 1);
+		printf("print array enviado\n");
+		print_array(enviado, sizeB);
 		int tagenviado = 0;
 		int midEnvia = mid + 1;
-		MPI_Send(&midEnvia, 1, MPI_INT, proxProcesso, MPI_ANY_TAG, MPI_COMM_WORLD);
-		MPI_Send(&sizeB, 1, MPI_INT, proxProcesso, MPI_ANY_TAG, MPI_COMM_WORLD);
-		MPI_Send(&tagenviado, 1, MPI_INT, proxProcesso, MPI_ANY_TAG, MPI_COMM_WORLD);
-		MPI_Send(&enviado, sizeB, MPI_INT, proxProcesso, MPI_ANY_TAG, MPI_COMM_WORLD);
-		recursive_merge_sort_parallel(tmp, begin, mid, sorted, nivel++, mpiRank, maxRank); // primeira metade (maior se for impar) - nao é um processo
-		merge(tmp + begin, sizeA, tmp + mid + 1, sizeB, sorted);
-		free(enviado);
+		printf("antes send p\n");
+		MPI_Send(&p, 1, MPI_INT, proxProcesso, 0, MPI_COMM_WORLD);
+		printf("passou send p\n");
+		MPI_Send(&midEnvia, 1, MPI_INT, proxProcesso, 0, MPI_COMM_WORLD);
+		MPI_Send(&sizeB, 1, MPI_INT, proxProcesso, 0, MPI_COMM_WORLD);
+		//MPI_Send(&tagenviado, 1, MPI_INT, proxProcesso, 0, MPI_COMM_WORLD);
+		MPI_Send(enviado, sizeB, MPI_INT, proxProcesso, 0, MPI_COMM_WORLD);
+		//recursive_merge_sort_parallel(tmp, begin, mid, nivel++, mpiRank, maxRank); // primeira metade (maior se for impar) - nao é um processo
+		merge(tmp + begin, sizeA, tmp + mid + 1, sizeB);
+
 	}
+
 }
 
 // First Merge Sort call
 void merge_sort(int* numbers, int size, int *tmp, int rank, int maxRank) {
-	MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
-	if (mpiRank = 0) {
-		recursive_merge_sort_parallel(numbers, 0, size-1, tmp, 0, mpiRank, maxRank); // chama a função recusva passando o numbers como um array vazio e o temp como o numbers
+		recursive_merge_sort_parallel(numbers, 0, size-1, 0, mpiRank, maxRank); // chama a função recusva passando o numbers como um array vazio e o temp como o numbers
+
 	}
-}
 
-void print_array(int* array, int size) {
-	printf("Printing Array:\n");
-	for (int i = 0; i < size; ++i) {
-		printf("%d. ", array[i]);
+	void print_array(int* array, int size) {
+		printf("Printing Array:\n");
+		for (int i = 0; i < size; ++i) {
+			printf("%d. ", array[i]);
+		}
+		printf("\n");
 	}
-	printf("\n");
-}
 
-void populate_array(int* array, int size, int max) {
-	int m = max+1;
-	for (int i = 0; i < size; ++i) {
-		array[i] = rand()%m;
+	void populate_array(int* array, int size, int max) {
+		int m = max+1;
+		for (int i = 0; i < size; ++i) {
+			array[i] = rand()%m;
+		}
 	}
-}
+	int s = 0;
 
-int main (int argc, char ** argv) {
-	int seed, max_val;
-	int * sortable;
-	int * tmp;
-	int arr_size;
+	int main (int argc, char ** argv) {
+		int seed, max_val;
+		int * sortable;
+		int * tmp;
+		int arr_size;
+		MPI_Init(&argc, &argv);
+		MPI_Comm_size(MPI_COMM_WORLD, &mpiSize);
 
-	switch (argc) {
-		case 1:
+		switch (argc) {
+			case 1:
 			seed = time(NULL);
 			arr_size = NELEMENTS;
 			max_val = MAXVAL;
 			break;
-		case 2:
+			case 2:
 			seed = atoi(argv[1]);
 			arr_size = NELEMENTS;
 			max_val = MAXVAL;
 			break;
-		case 3:
+			case 3:
 			seed = atoi(argv[1]);
 			arr_size = atoi(argv[2]);
 			max_val = MAXVAL;
 			break;
-		case 4:
+			case 4:
 			seed = atoi(argv[1]);
 			arr_size = atoi(argv[2]);
 			max_val = atoi(argv[3]);
 			break;
-		default:
+			default:
 			printf("Too many arguments\n");
 			break;	
+		}
+
+		srand(seed);
+		sortable = malloc(arr_size*sizeof(int));
+		tmp 	 = malloc(arr_size*sizeof(int));
+
+
+		populate_array(sortable, arr_size, max_val);
+		tmp = memcpy(tmp, sortable, arr_size*sizeof(int));
+		printf("array original\n");
+		s++;
+		printf("estou no main pela %d vez \n", s);
+		printf("processo atual é %d\n", mpiRank);
+		print_array(tmp, arr_size);
+		ordenado = malloc(arr_size*sizeof(int));
+
+		int maxRank = mpiSize - 1;
+		if(mpiRank == 0){
+			merge_sort(sortable, arr_size, tmp, mpiRank, maxRank);
+		}
+
+		printf("FINAL sort\n");
+		print_array(ordenado, arr_size);
+
+		MPI_Finalize();
+		free(sortable);
+		free(tmp);
+		return 0;
 	}
-
-	srand(seed);
-	sortable = malloc(arr_size*sizeof(int));
-	tmp 	 = malloc(arr_size*sizeof(int));
-	
-	MPI_Init(&argc, &argv);
-	MPI_Comm_size(MPI_COMM_WORLD, &mpiSize);
-
-	populate_array(sortable, arr_size, max_val);
-	tmp = memcpy(tmp, sortable, arr_size*sizeof(int));
-	printf("array original\n");
-	print_array(tmp, arr_size);
-	ordenado = malloc(arr_size*sizeof(int));
-
-	int maxRank = mpiSize - 1;
-	
-	merge_sort(sortable, arr_size, tmp, mpiRank, maxRank);
-	
-	printf("FINAL sort\n");
-	print_array(ordenado, arr_size);
-
-	MPI_Finalize();
-	free(sortable);
-	free(tmp);
-	return 0;
-}
