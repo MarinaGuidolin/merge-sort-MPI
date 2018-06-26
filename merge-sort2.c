@@ -86,10 +86,13 @@ int * merge(int *numbersA, int sizeA, int *numbersB, int sizeB, int *sorted) {
 
 
 void recursive_merge_sort_p(int *tmp, int begin, int end, int * sorted){
+	printf("esta no merge sort e no rank  %d\n", rank );
 	int proxProcesso = rank + pow(2, nivel); // se ele nao recebeu nada, usa o nivel e o rank atual
 	int tag = 0;
-	if(proxProcesso > maxProcessos){
-		return;
+	printf("proximo processo é = %d\n", proxProcesso);
+	printf("maxProcessos é = %d\n", maxProcessos );
+	if(proxProcesso >= maxProcessos){
+		recursive_merge_sort(tmp, begin, end, sorted);
 	}//ou recursive_merge_sort(tmp, begin, end, sorted);
 	if (end == begin) {
 		return;
@@ -167,7 +170,7 @@ int main (int argc, char ** argv) {
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &processos);
-	maxProcessos = processos + 1;	
+	maxProcessos = processos;	
 	int seed, max_val;
 	int * sortable;
 	int * tmp;
@@ -199,8 +202,10 @@ int main (int argc, char ** argv) {
 				printf("Too many arguments\n");
 				break;	
 		}
+		printf("deveria ser rank 0 e esta no rank %d\n", rank );
 
 		int proxProcesso = rank + pow(2, nivel); // definido o processo ápós o zero = 1
+		printf("proximo processo é = %d\n", proxProcesso );
 		srand(seed);
 		sortable = malloc(arr_size*sizeof(int));
 		tmp 	 = malloc(arr_size*sizeof(int));
@@ -214,21 +219,27 @@ int main (int argc, char ** argv) {
 		printf("FINAL sort\n");
 		print_array(ordenado, arr_size);
 	} else {
-		int processoAnterior = pow(2,nivel) - rank;// esperando do processo anterior
+		printf("deveria ser rank =!0 e esta no rank %d\n", rank );
+		int bit = 31 - __builtin_clz(rank);
+  		double d = pow(2, bit);
+		int processoAnterior = rank - d;// esperando do processo anterior
 		int sizeB; // tamanho da segunda metade recebida
+		printf("processo anterior é = %d\n", processoAnterior );
 		MPI_Recv(&sizeB, 1, MPI_INT, processoAnterior, TAG_METADE, MPI_COMM_WORLD, MPI_STATUS_IGNORE);  //recebe do processo anterior
 		printf("sizeB recebido dentro do main = %d\n", sizeB);
 		MPI_Recv(&nivel, 1, MPI_INT, processoAnterior, TAG_NIVEL, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		if(processosCriados > maxProcessos){ // nao pode mais criar processos novos, entao ele so recebe e envia o array ja 
-			int proxProcesso = rank + pow(2, nivel);
+		int proxProcesso = rank + pow(2, nivel);
+		if(processosCriados > maxProcessos && proxProcesso <= maxProcessos){ // nao pode mais criar processos novos, entao ele so recebe e envia o array ja 
 			int *recebido2 = malloc(sizeB*sizeof(int));
 			MPI_Recv(&recebido2, sizeB, MPI_INT, processoAnterior, TAG_METADE, MPI_COMM_WORLD, MPI_STATUS_IGNORE); // recebe uma segunda metade com tmanho sizeB
-			
+			printf("recebeu array no main\n");
+			print_array(recebido2, sizeB);
 			int *sorted = malloc(sizeB*sizeof(int)); 
-			recursive_merge_sort_p(recebido2, 0, sizeB, sizeSorted); // executa o merge paralelo com uma segunda metade recebida
+			int nivelAnterior = nivel -1;
+			recursive_merge_sort_p(recebido2, 0, sizeB, sorted); // executa o merge paralelo com uma segunda metade recebida
 			MPI_Send(recebido2, sizeB, MPI_INT, processoAnterior, TAG_METADE, MPI_COMM_WORLD);  // talvz mudar para o processo anterior
 			MPI_Send(&sizeB, 1, MPI_INT, processoAnterior, TAG_TAMANHO, MPI_COMM_WORLD);
-			//MPI_Send(&nivel, sizeB, MPI_INT, processoAnterior, TAG_NIVEL, MPI_COMM_WORLD);
+			MPI_Send(&nivelAnterior, sizeB, MPI_INT, processoAnterior, TAG_NIVEL, MPI_COMM_WORLD);
 			//free(recebido2);
 			//free(sorted);
 		}
